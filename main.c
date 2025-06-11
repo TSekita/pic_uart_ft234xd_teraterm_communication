@@ -3,43 +3,40 @@
 // 'C' source line config statements
 
 // CONFIG1
-#pragma config FEXTOSC = OFF    // External Oscillator mode selection bits (Oscillator not enabled)
-#pragma config RSTOSC = HFINT1  // Power-up default value for COSC bits (HFINTOSC (1MHz))
-#pragma config CLKOUTEN = OFF   // Clock Out Enable bit (CLKOUT function is disabled; i/o or oscillator function on OSC2)
-#pragma config CSWEN = ON       // Clock Switch Enable bit (Writing to NOSC and NDIV is allowed)
-#pragma config FCMEN = OFF      // Fail-Safe Clock Monitor Enable bit (FSCM timer disabled)
+#pragma config FEXTOSC = OFF    // 外部オシレータ無効
+#pragma config RSTOSC = HFINT1  // 初期クロックをHFINTOSC（1MHz）に設定
+#pragma config CLKOUTEN = OFF   // クロック出力無効
+#pragma config CSWEN = ON       // クロックスイッチ許可
+#pragma config FCMEN = OFF      // フェイルセーフクロック監視無効
 
 // CONFIG2
-#pragma config MCLRE = ON       // Master Clear Enable bit (MCLR pin is Master Clear function)
-#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
-#pragma config LPBOREN = OFF    // Low-Power BOR enable bit (ULPBOR disabled)
-#pragma config BOREN = ON       // Brown-out reset enable bits (Brown-out Reset Enabled, SBOREN bit is ignored)
-#pragma config BORV = LO        // Brown-out Reset Voltage Selection (Brown-out Reset Voltage (VBOR) set to 1.9V on LF, and 2.45V on F Devices)
-#pragma config ZCD = OFF        // Zero-cross detect disable (Zero-cross detect circuit is disabled at POR.)
-#pragma config PPS1WAY = ON     // Peripheral Pin Select one-way control (The PPSLOCK bit can be cleared and set only once in software)
-#pragma config STVREN = OFF     // Stack Overflow/Underflow Reset Enable bit (Stack Overflow or Underflow will not cause a reset)
+#pragma config MCLRE = ON       // MCLRピン有効（リセット機能）
+#pragma config PWRTE = OFF      // パワーアップタイマ無効
+#pragma config LPBOREN = OFF    // 低電力BOR無効
+#pragma config BOREN = ON       // BOR（ブラウンアウトリセット）有効
+#pragma config BORV = LO        // BOR電圧を低に設定（2.45V）
+#pragma config ZCD = OFF        // ゼロクロス検出無効
+#pragma config PPS1WAY = ON     // PPSの設定は一度だけ可能
+#pragma config STVREN = OFF     // スタックオーバーフロー／アンダーフローによるリセット無効
 
 // CONFIG3
-#pragma config WDTCPS = WDTCPS_31// WDT Period Select bits (Divider ratio 1:65536; software control of WDTPS)
-#pragma config WDTE = OFF       // WDT operating mode (WDT Disabled, SWDTEN is ignored)
-#pragma config WDTCWS = WDTCWS_7// WDT Window Select bits (window always open (100%); software control; keyed access not required)
-#pragma config WDTCCS = SC      // WDT input clock selector (Software Control)
+#pragma config WDTCPS = WDTCPS_31 // ウォッチドッグタイマ周期（1:65536）
+#pragma config WDTE = OFF       // ウォッチドッグタイマ無効
+#pragma config WDTCWS = WDTCWS_7 // ウィンドウ常時オープン
+#pragma config WDTCCS = SC      // ソフトウェア制御クロック
 
 // CONFIG4
-#pragma config WRT = OFF        // UserNVM self-write protection bits (Write protection off)
-#pragma config SCANE = not_available// Scanner Enable bit (Scanner module is not available for use)
-#pragma config LVP = ON         // Low Voltage Programming Enable bit (Low Voltage programming enabled. MCLR/Vpp pin function is MCLR.)
+#pragma config WRT = OFF        // 自己書き込み保護無効
+#pragma config SCANE = not_available // スキャナ機能無効
+#pragma config LVP = ON         // 低電圧書き込み有効
 
 // CONFIG5
-#pragma config CP = OFF         // UserNVM Program memory code protection bit (Program Memory code protection disabled)
-#pragma config CPD = OFF        // DataNVM code protection bit (Data EEPROM code protection disabled)
-
-// #pragma config statements should precede project file includes.
-// Use project enums instead of #define for ON and OFF.
+#pragma config CP = OFF         // プログラムメモリ保護無効
+#pragma config CPD = OFF        // データEEPROM保護無効
 
 #include <xc.h>
 
-#define _XTAL_FREQ 16000000 //Internal oscillator Hz
+#define _XTAL_FREQ 16000000 // 内部クロック 16MHz
 #define BUFFER_SIZE 64
 char inputBuffer[BUFFER_SIZE];
 uint8_t index = 0;
@@ -57,57 +54,56 @@ uint8_t index = 0;
 } while(0)
 
 void UART_Init(void) {
-    // 内部振動子周波数16MHz設定
-    OSCCON1 = 0x60; // HFINTOSC, no PLL
-    OSCFRQ = 0x05; // 16 MHz
+    // 内部発振器を16MHzに設定
+    OSCCON1 = 0x60; // HFINTOSC, PLLなし
+    OSCFRQ = 0x05;  // 16MHz
 
-    // TX (RC6)を出力、RX (RC7)を入力に設定
-    TRISC6 = 0; // TXピンを出力
-    TRISC7 = 1; // RXピンを入力
+    // TX (RC6) を出力、RX (RC7) を入力に設定
+    TRISC6 = 0; // TX出力
+    TRISC7 = 1; // RX入力
 
-    ANSC7 = 0; // 出力をデジタルに設定
+    ANSC7 = 0;  // デジタル入力に設定
 
     PPS_UNLOCK();
 
-    // PPS設定:TXはRC6、RXはRC7
-    RC6PPS = 0x10; // RC6はTXの機能を使用のため、0x10を代入
-    RXPPS = 0x17; // RC7はRXの機能を使用のため、RC7のアドレス0x17を代入
+    // PPS設定: TXはRC6、RXはRC7
+    RC6PPS = 0x10; // RC6にTX機能を割当て
+    RXPPS = 0x17;  // RC7にRX機能を割当て
 
     PPS_LOCK();
 
-
     // EUSART設定
-    BAUD1CON = 0x08; // BRG16=1�i16�r�b�g�{�[���[�g�j
-    TX1STA = 0x24; // TXEN=1�i���M�L���j, BRGH=1
-    RC1STA = 0x90; // SPEN=1�iEUSART�L���j, CREN=1�i��M�L���j
+    BAUD1CON = 0x08; // BRG16=1（16ビットボーレート生成器）
+    TX1STA = 0x24;   // TXEN=1（送信有効）, BRGH=1（高速）
+    RC1STA = 0x90;   // SPEN=1（EUSART有効）, CREN=1（連続受信）
 
-    // �{�[���[�g�ݒ�i9600bps, 16MHz�N���b�N, BRG16=1, BRGH=1�j
-    // �v�Z���FBRG = (Fosc / (4 * Baud)) - 1
-    // = (16000000 / (4 * 9600)) - 1 = 416.666... �� 416
-    SP1BRGL = 415 & 0xFF;
-    SP1BRGH = (415 >> 8) & 0xFF;
+    // ボーレート設定（9600bps, 16MHz, BRG16=1, BRGH=1）
+    // 式: BRG = (Fosc / (4 * Baud)) - 1
+    // → (16000000 / (4 * 9600)) - 1 = 416
+    SP1BRGL = 416 & 0xFF;
+    SP1BRGH = (416 >> 8) & 0xFF;
 }
 
 void UART_Write(char data) {
-    while (!TXIF); // �� �C���FTX1IF �� TXIF
+    while (!TXIF); // TX1IFがセットされるまで待機
     TX1REG = data;
 }
 
 char UART_Read(void) {
-    // �G���[������ꍇ�͕���
+    // エラー時はリセット
     if (RC1STAbits.OERR) {
         RC1STAbits.CREN = 0;
         RC1STAbits.CREN = 1;
     }
 
-    while (!PIR3bits.RCIF); // ��M�҂�
+    while (!PIR3bits.RCIF); // 受信待ち
 
     if (RC1STAbits.FERR) {
-        volatile char dummy = RC1REG; // �G���[���͓ǂݎ̂�
-        return 0; // �������� 0xFF �� '?' ��Ԃ�
+        volatile char dummy = RC1REG; // エラー読み捨て
+        return 0;
     }
 
-    return RC1REG; // �����M
+    return RC1REG; // 正常な受信
 }
 
 void main(void) {
@@ -120,9 +116,9 @@ void main(void) {
         if (PIR3bits.RCIF) {
             char c = UART_Read();
 
-            if (c == '\r' || c == '\n') {  // ���s�œ��͊���
-                inputBuffer[index] = '\0';  // ������I�[
-           
+            if (c == '\r' || c == '\n') {  // 改行で送信実行
+                inputBuffer[index] = '\0';  // 終端文字
+
                 for (uint8_t i = 0; i < index; i++) {
                     UART_Write(inputBuffer[i]);
                     if (i == index - 1) {
@@ -130,12 +126,12 @@ void main(void) {
                         UART_Write('\n');
                     }
                 }
-                index = 0;  // �o�b�t�@�N���A
+                index = 0;  // バッファクリア
             } else {
                 if (index < BUFFER_SIZE - 1) {
                     inputBuffer[index++] = c;
                 } else {
-                    // �o�b�t�@�I�[�o�[�t���[�΍�i�K�v�Ȃ珈���ǉ��j
+                    // バッファオーバーフロー対策（リセット）
                     index = 0;
                 }
             }
